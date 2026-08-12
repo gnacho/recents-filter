@@ -85,6 +85,7 @@ fn build_window_inner(
     purge_row.set_subtitle("Remove entries from excluded folders that are already in Recent Files");
     let purge_btn = gtk4::Button::with_label("Purge");
     purge_btn.add_css_class("suggested-action");
+    compact_button(&purge_btn);
     purge_row.add_suffix(&purge_btn);
     watcher_box.append(&purge_row);
 
@@ -193,6 +194,21 @@ fn build_window_inner(
     }
 
     window
+}
+
+/// Shrinks the vertical padding of a button (used for the Purge action so it
+/// does not dwarf the row it sits in).
+fn compact_button(btn: &gtk4::Button) {
+    let provider = gtk4::CssProvider::new();
+    provider.load_from_string(
+        "button { min-height: 0; padding-top: 2px; padding-bottom: 2px; }",
+    );
+    let display = btn.display();
+    gtk4::style_context_add_provider_for_display(
+        &display,
+        &provider,
+        gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }
 
 fn section_title(text: &str) -> gtk4::Label {
