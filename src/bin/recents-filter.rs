@@ -5,6 +5,7 @@ use libadwaita::prelude::*;
 use recents_filter::config::Config;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::Duration;
 
 const APP_ID: &str = "org.gnacho.RecentsFilter";
 
@@ -65,8 +66,13 @@ fn build_ui(app: &libadwaita::Application) {
     footer.append(&add_row);
 
     let status_row = libadwaita::ActionRow::new();
-    status_row.set_title("Daemon status");
+    status_row.set_title("Daemon");
+    status_row.set_subtitle("Watches recently-used.xbel and purges excluded folders");
     let status_label = gtk4::Label::new(None);
+    let start_btn = gtk4::Button::with_label("Start");
+    start_btn.add_css_class("suggested-action");
+    start_btn.set_visible(false);
+    status_row.add_suffix(&start_btn);
     status_row.add_suffix(&status_label);
     footer.append(&status_row);
 
@@ -75,8 +81,29 @@ fn build_ui(app: &libadwaita::Application) {
 
     refresh_list(&list, &config);
 
-    // Refresh daemon status label.
-    refresh_status(&status_label);
+    // Refresh daemon status periodically so the label follows live state.
+    refresh_status(&status_label, &start_btn);
+    glib::timeout_add_local(Duration::from_secs(2), glib::clone!(
+        #[strong]
+        status_label,
+        #[strong]
+        start_btn,
+        move || {
+            refresh_status(&status_label, &start_btn);
+            glib::ControlFlow::Continue
+        }
+    ));
+
+    start_btn.connect_clicked(glib::clone!(
+        #[strong]
+        status_label,
+        #[strong]
+        start_btn,
+        move |_| {
+            start_daemon();
+            refresh_status(&status_label, &start_btn);
+        }
+    ));
 
     // Add button: open a folder chooser.
     add_btn.connect_clicked(glib::clone!(
@@ -165,12 +192,24 @@ fn refresh_list(list: &gtk4::ListBox, config: &Rc<RefCell<Config>>) {
     }
 }
 
-fn refresh_status(label: &gtk4::Label) {
-    let active = std::process::Command::new("systemctl")
+fn daemon_active() -> bool {
+    std::process::Command::new("systemctl")
         .args(["--user", "is-active", "recents-filterd"])
         .output()
         .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "active")
-        .unwrap_or(false);
+        .unwrap_or(false)
+}
+
+fn start_daemon() {
+    let _ = std::process::Command::new("systemctl")
+        .args(["--user", "start", "recents-filterd"])
+        .status();
+}
+
+fn refresh_status(label: &gtk4::Label, start_btn: &gtk4::Button) {
+    let active = daemon_active();
     label.set_text(if active { "● active" } else { "○ not running" });
-    label.add_css_class(if active { "success" } else { "warning" });
+    label.set_css_classes(if active { &["success"] } else { &["warning"] });
+    start_btn.set_visible(!active);
+    start_btn.set_sensitive(!active);
 }
