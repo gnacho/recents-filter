@@ -11,7 +11,7 @@ GNOME no tiene exclusión por carpeta para Archivos recientes. Las aplicaciones 
 Recents Filter cierra ese hueco con dos piezas pequeñas:
 
 - **Una GUI (GTK4/libadwaita)** para gestionar la lista de carpetas excluidas. Vive en `~/.config/recents-filter/config.json`.
-- **Un daemon en segundo plano (inotify)** que vigila `recently-used.xbel`. En cuanto cualquier aplicación lo reescribe, el daemon elimina todo bookmark cuya ruta esté bajo una carpeta excluida y vuelve a escribir el fichero atómicamente. Corre como servicio systemd de usuario, así que sobrevive a cerrar la GUI y funciona en cada reinicio de sesión.
+- **Una purga al escribir, disparada por systemd.** Una unit `recents-filterd.path` (el vigilante de ficheros por inotify de systemd) arranca un one-shot `recents-filterd.service` en cuanto cambia `recently-used.xbel`. El one-shot elimina todo bookmark cuya ruta esté bajo una carpeta excluida y vuelve a escribir el fichero atómicamente. **No hay daemon residente**: entre escrituras solo espera systemd, sin procesos propios corriendo.
 
 ## Instalación
 
@@ -19,22 +19,23 @@ Recents Filter cierra ese hueco con dos piezas pequeñas:
 cargo build --release
 cp target/release/recents-filter target/release/recents-filterd ~/.local/bin/
 mkdir -p ~/.config/systemd/user ~/.local/share/applications ~/.local/share/metainfo
-cp data/recents-filterd.service ~/.config/systemd/user/
+cp data/recents-filterd.path data/recents-filterd.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now recents-filterd
+systemctl --user enable --now recents-filterd.path
 cp data/org.gnacho.RecentsFilter.desktop ~/.local/share/applications/
 cp data/org.gnacho.RecentsFilter.metainfo.xml ~/.local/share/metainfo/
 update-desktop-database ~/.local/share/applications
 ```
 
-Después lanza **Recents Filter** desde tu cuadrícula de aplicaciones y añade las carpetas que quieras mantener fuera de Archivos recientes.
+Después lanza **Recents Filter** desde tu cuadrícula de aplicaciones y añade las carpetas que quieras mantener fuera de Archivos recientes. La GUI muestra el estado del watcher y ofrece *Enable watcher* (si la unit `.path` está apagada) y *Purge now* (ejecutar el one-shot a mano).
 
 ## Cómo se comporta
 
-- **Instantáneo**: el daemon reacciona al xbel con un debounce de ~300 ms, así que un fichero abierto en una carpeta excluida desaparece de Archivos recientes en menos de un segundo.
+- **Disparado, no por sondeo**: systemd vigila `recently-used.xbel` vía inotify y arranca el one-shot solo cuando cambia. No corre ningún proceso entre escrituras.
+- **Instantáneo**: un fichero abierto en una carpeta excluida desaparece de Archivos recientes en menos de un segundo.
 - **Atómico**: el xbel se reescribe con fichero temporal + rename, así que una aplicación GTK que lo lea a la vez nunca ve un fichero a medias.
 - **Privado**: el xbel reescrito conserva el modo `0600` que GTK usa para ese fichero.
-- **Converge**: cuando una aplicación GTK añade un reciente no excluido, reescribe todo el xbel desde su lista en memoria — incluidas las entradas excluidas. El daemon las purga otra vez. Se estabiliza en segundos, sin bucle.
+- **Converge**: cuando una aplicación GTK añade un reciente no excluido, reescribe todo el xbel desde su lista en memoria — incluidas las entradas excluidas. El one-shot las purga otra vez. Se estabiliza en segundos, sin bucle.
 
 ## Desarrollo
 

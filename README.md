@@ -17,11 +17,12 @@ Recents Filter closes that gap with two small pieces:
 
 - **A GUI (GTK4/libadwaita)** to manage the list of excluded folders. It lives
   in `~/.config/recents-filter/config.json`.
-- **A background daemon (inotify)** that watches `recently-used.xbel`. The
-  moment any app rewrites it, the daemon strips every bookmark whose path is
-  under an excluded folder and writes the file back atomically. Runs as a
-  systemd user service, so it survives closing the GUI and works across
-  session restarts.
+- **A purge on write, triggered by systemd.** A `recents-filterd.path` unit
+  (systemd's inotify-based file watcher) starts a `recents-filterd.service`
+  one-shot the moment `recently-used.xbel` changes. The one-shot strips every
+  bookmark whose path is under an excluded folder and writes the file back
+  atomically. There is **no resident daemon**: between writes, only systemd is
+  waiting, with zero processes of our own running.
 
 ## Install
 
@@ -29,26 +30,30 @@ Recents Filter closes that gap with two small pieces:
 cargo build --release
 cp target/release/recents-filter target/release/recents-filterd ~/.local/bin/
 mkdir -p ~/.config/systemd/user ~/.local/share/applications ~/.local/share/metainfo
-cp data/recents-filterd.service ~/.config/systemd/user/
+cp data/recents-filterd.path data/recents-filterd.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now recents-filterd
+systemctl --user enable --now recents-filterd.path
 cp data/org.gnacho.RecentsFilter.desktop ~/.local/share/applications/
 cp data/org.gnacho.RecentsFilter.metainfo.xml ~/.local/share/metainfo/
 update-desktop-database ~/.local/share/applications
 ```
 
 Then launch **Recents Filter** from your app grid and add the folders you want
-to keep out of Recent Files.
+to keep out of Recent Files. The GUI shows the watcher status and offers
+*Enable watcher* (if the `.path` unit is off) and *Purge now* (run the
+one-shot manually).
 
 ## How it behaves
 
-- **Instant**: the daemon reacts to the xbel with a ~300 ms debounce, so a file
-  opened in an excluded folder disappears from Recent Files within a second.
+- **Triggered, not polled**: systemd watches `recently-used.xbel` via inotify
+  and starts the one-shot only when it changes. No process runs between writes.
+- **Instant**: a file opened in an excluded folder disappears from Recent Files
+  within a second.
 - **Atomic**: the xbel is rewritten through a temp file + rename, so a GTK app
   reading it concurrently never sees a partial file.
 - **Private**: the rewritten xbel keeps the `0600` mode GTK uses for it.
 - **Converges**: when a GTK app adds a non-excluded recent, it rewrites the
-  whole xbel from its in-memory list — including excluded entries. The daemon
+  whole xbel from its in-memory list — including excluded entries. The one-shot
   purges them again. It settles in seconds, with no loop.
 
 ## Development

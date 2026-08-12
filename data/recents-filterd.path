@@ -1,0 +1,8 @@
+[Unit]
+Description=Recents Filter daemon — keep selected folders out of the GNOME recent files list
+
+[Path]
+PathModified=%h/.local/share/recently-used.xbel
+
+[Install]
+WantedBy=default.target

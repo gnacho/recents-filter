@@ -66,13 +66,16 @@ fn build_ui(app: &libadwaita::Application) {
     footer.append(&add_row);
 
     let status_row = libadwaita::ActionRow::new();
-    status_row.set_title("Daemon");
-    status_row.set_subtitle("Watches recently-used.xbel and purges excluded folders");
+    status_row.set_title("Watcher");
+    status_row.set_subtitle("systemd triggers a purge whenever recently-used.xbel changes");
     let status_label = gtk4::Label::new(None);
-    let start_btn = gtk4::Button::with_label("Start");
-    start_btn.add_css_class("suggested-action");
-    start_btn.set_visible(false);
-    status_row.add_suffix(&start_btn);
+    let enable_btn = gtk4::Button::with_label("Enable watcher");
+    enable_btn.add_css_class("suggested-action");
+    enable_btn.set_visible(false);
+    let purge_btn = gtk4::Button::with_label("Purge now");
+    purge_btn.add_css_class("suggested-action");
+    status_row.add_suffix(&purge_btn);
+    status_row.add_suffix(&enable_btn);
     status_row.add_suffix(&status_label);
     footer.append(&status_row);
 
@@ -81,27 +84,38 @@ fn build_ui(app: &libadwaita::Application) {
 
     refresh_list(&list, &config);
 
-    // Refresh daemon status periodically so the label follows live state.
-    refresh_status(&status_label, &start_btn);
+    // Refresh watcher status periodically so the label follows live state.
+    refresh_status(&status_label, &enable_btn);
     glib::timeout_add_local(Duration::from_secs(2), glib::clone!(
         #[strong]
         status_label,
         #[strong]
-        start_btn,
+        enable_btn,
         move || {
-            refresh_status(&status_label, &start_btn);
+            refresh_status(&status_label, &enable_btn);
             glib::ControlFlow::Continue
         }
     ));
 
-    start_btn.connect_clicked(glib::clone!(
+    enable_btn.connect_clicked(glib::clone!(
         #[strong]
         status_label,
         #[strong]
-        start_btn,
+        enable_btn,
         move |_| {
-            start_daemon();
-            refresh_status(&status_label, &start_btn);
+            enable_watcher();
+            refresh_status(&status_label, &enable_btn);
+        }
+    ));
+
+    purge_btn.connect_clicked(glib::clone!(
+        #[strong]
+        status_label,
+        #[strong]
+        enable_btn,
+        move |_| {
+            purge_now();
+            refresh_status(&status_label, &enable_btn);
         }
     ));
 
@@ -192,24 +206,30 @@ fn refresh_list(list: &gtk4::ListBox, config: &Rc<RefCell<Config>>) {
     }
 }
 
-fn daemon_active() -> bool {
+fn watcher_enabled() -> bool {
     std::process::Command::new("systemctl")
-        .args(["--user", "is-active", "recents-filterd"])
+        .args(["--user", "is-enabled", "recents-filterd.path"])
         .output()
-        .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "active")
+        .map(|o| String::from_utf8_lossy(&o.stdout).trim() == "enabled")
         .unwrap_or(false)
 }
 
-fn start_daemon() {
+fn enable_watcher() {
     let _ = std::process::Command::new("systemctl")
-        .args(["--user", "start", "recents-filterd"])
+        .args(["--user", "enable", "--now", "recents-filterd.path"])
         .status();
 }
 
-fn refresh_status(label: &gtk4::Label, start_btn: &gtk4::Button) {
-    let active = daemon_active();
-    label.set_text(if active { "● active" } else { "○ not running" });
-    label.set_css_classes(if active { &["success"] } else { &["warning"] });
-    start_btn.set_visible(!active);
-    start_btn.set_sensitive(!active);
+fn purge_now() {
+    let _ = std::process::Command::new("systemctl")
+        .args(["--user", "start", "recents-filterd.service"])
+        .status();
+}
+
+fn refresh_status(label: &gtk4::Label, enable_btn: &gtk4::Button) {
+    let enabled = watcher_enabled();
+    label.set_text(if enabled { "● enabled" } else { "○ disabled" });
+    label.set_css_classes(if enabled { &["success"] } else { &["warning"] });
+    enable_btn.set_visible(!enabled);
+    enable_btn.set_sensitive(!enabled);
 }

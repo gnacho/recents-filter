@@ -1,11 +1,7 @@
 [Unit]
-Description=Recents Filter daemon — keep selected folders out of the GNOME recent files list
+Description=Recents Filter purge — one-shot triggered by recents-filterd.path
 Documentation=https://github.com/gnacho/recents-filter
 
 [Service]
+Type=oneshot
 ExecStart=%h/.local/bin/recents-filterd
-Restart=on-failure
-RestartSec=2
-
-[Install]
-WantedBy=default.target
