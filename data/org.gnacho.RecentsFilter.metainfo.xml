@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>org.gnacho.RecentsFilter</id>
+  <name>Recents Filter</name>
+  <summary>Keep selected folders out of the GNOME recent files list</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+  <description>
+    <p>Recents Filter lets you pick folders whose contents must never appear in the
+    GNOME Recent Files list, in any app.</p>
+    <p>GNOME has no native per-folder exclusion: GTK apps keep recording opened
+    files in ~/.local/share/recently-used.xbel. Recents Filter ships a small
+    inotify daemon that watches that file and purges excluded folders instantly
+    when apps rewrite it, plus a GTK4/libadwaita configurator.</p>
+  </description>
+  <categories>
+    <category>Utility</category>
+  </categories>
+  <keywords>
+    <keyword>recents</keyword>
+    <keyword>recent</keyword>
+    <keyword>files</keyword>
+    <keyword>privacy</keyword>
+  </keywords>
+  <releases>
+    <release version="0.1.0" date="2026-08-12"/>
+  </releases>
+</component>

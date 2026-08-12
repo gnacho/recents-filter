@@ -1,0 +1,11 @@
+[Unit]
+Description=Recents Filter daemon — keep selected folders out of the GNOME recent files list
+Documentation=https://github.com/gnacho/recents-filter
+
+[Service]
+ExecStart=%h/.local/bin/recents-filterd
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

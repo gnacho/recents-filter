@@ -1,0 +1,33 @@
+[package]
+name = "recents-filter"
+version = "0.1.0"
+edition = "2021"
+authors = ["gnacho"]
+description = "Keep selected folders out of the GNOME recent files list"
+rust-version = "1.80"
+license = "AGPL-3.0-or-later"
+
+[lib]
+name = "recents_filter"
+path = "src/lib.rs"
+
+[[bin]]
+name = "recents-filter"
+path = "src/bin/recents-filter.rs"
+
+[[bin]]
+name = "recents-filterd"
+path = "src/bin/recents-filterd.rs"
+
+[dependencies]
+gtk4 = { version = "0.9", features = ["v4_14"] }
+libadwaita = { version = "0.7", features = ["v1_5"] }
+glib = "0.20"
+gio = "0.20"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+roxmltree = "0.20"
+url = "2"
+notify = "8"
+log = "0.4"
+env_logger = "0.11"

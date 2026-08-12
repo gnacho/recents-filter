@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Recents Filter
+Comment=Keep selected folders out of the GNOME recent files list
+Exec=recents-filter
+Icon=document-open-recent-symbolic
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=recents;recent;files;privacy;
+X-GNOME-UsesNotifications=false
