@@ -4,6 +4,8 @@ Keep selected folders out of the GNOME Recent Files list, in every app.
 
 ![GNU Affero General Public License v3](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
 
+<img alt="Recents Filter main window" src="assets/recents-filter.png" width="640">
+
 ## Why this exists
 
 GNOME has no per-folder exclusion for Recent Files. GTK apps record everything

@@ -4,6 +4,8 @@ Mantén carpetas seleccionadas fuera de la lista de archivos recientes de GNOME,
 
 ![Licencia Pública General Affero de GNU v3](https://img.shields.io/badge/Licencia-AGPL--3.0-blue.svg)
 
+<img alt="Ventana principal de Recents Filter" src="assets/recents-filter.png" width="640">
+
 ## Por qué existe
 
 GNOME no tiene exclusión por carpeta para Archivos recientes. Las aplicaciones GTK registran todo lo que abres en `~/.local/share/recently-used.xbel`, y no hay ningún ajuste que diga "esta carpeta nunca aparece aquí". El truco habitual — ocultar una carpeta poniéndole un punto delante del nombre — solo esconde sus entradas en Archivos y en los diálogos de GTK. Las entradas siguen quedando en el xbel, las aplicaciones de terceros las muestran, y activar *Mostrar archivos ocultos* lo expone todo otra vez.
